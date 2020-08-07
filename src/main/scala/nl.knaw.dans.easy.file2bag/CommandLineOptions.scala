@@ -74,7 +74,7 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
     validateFileIsDirectory(fileOption.map(_.toJava))
   )
   Seq(metadata, datasets).foreach(fileOption =>
-    validateFileIsDirectory(fileOption.map(_.toJava))
+    validateFileIsFile(fileOption.map(_.toJava))
   )
 
   footer("")
