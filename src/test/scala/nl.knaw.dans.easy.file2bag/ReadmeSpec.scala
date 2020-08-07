@@ -32,7 +32,6 @@ class ReadmeSpec extends AnyFlatSpec
 
   private val configuration = Configuration(
     version = "my-version",
-    serverPort = 12345,
   )
   private val clo = new CommandLineOptions(Array[String](), configuration) {
     // avoids System.exit() in case of invalid arguments or "--help"

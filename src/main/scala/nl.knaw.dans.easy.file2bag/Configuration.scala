@@ -19,8 +19,7 @@ import better.files.File
 import better.files.File.root
 import org.apache.commons.configuration.PropertiesConfiguration
 
-case class Configuration(version: String,
-                         serverPort: Int,
+case class Configuration(version: String
                          // other configuration properties defined in application.properties
                         )
 
@@ -39,7 +38,6 @@ object Configuration {
 
     new Configuration(
       version = (home / "bin" / "version").contentAsString.stripLineEnd,
-      serverPort = properties.getInt("daemon.http.port"),
       // read other properties defined in application.properties
     )
   }
