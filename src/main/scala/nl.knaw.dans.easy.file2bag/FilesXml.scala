@@ -22,7 +22,7 @@ import nl.knaw.dans.lib.string._ // required by maven for isBlank, ignored by In
 
 import scala.util.Try
 import scala.xml.transform.{ RewriteRule, RuleTransformer }
-import scala.xml.{ Elem, Node }
+import scala.xml.{ Elem, Node, XML }
 
 object FilesXml extends DebugEnhancedLogging {
 
@@ -31,21 +31,23 @@ object FilesXml extends DebugEnhancedLogging {
     // easy-deposit-api does not supply rights at all
     // so here we don't supply a default
     // https://github.com/DANS-KNAW/easy-deposit-api/blob/eef71618e8b776fb274da123f8011510499c741a/src/main/scala/nl.knaw.dans.easy.deposit/docs/FilesXml.scala#L40-L42
-    val itemContent = if (accessRights.isBlank) Seq[Node]()
-                      else <accessibleToRights>{ accessRights }</accessibleToRights>
-    val newItem =
-        <file filepath={ "data/" + destinationPath }>
-          <dcterms:format>{ mimeType }</dcterms:format>
-          { itemContent }
-        </file>
-    logger.info(newItem.toOneLiner)
+    val formatTagPrefix = (oldFilesXml \ "file" \ "format").headOption.map(_.prefix).getOrElse("dcterms")
+    val accessibleTo = if (accessRights.isBlank) ""
+                      else s"<accessibleToRights>$accessRights</accessibleToRights>"
+    val newFileElement =
+      XML.loadString(
+        s"""<file filepath="data/$destinationPath">
+           <$formatTagPrefix:format>$mimeType</$formatTagPrefix:format>
+           $accessibleTo
+        </file>""")
+    logger.info(newFileElement.toOneLiner)
 
     object insertElement extends RewriteRule {
       override def transform(node: Node): Seq[Node] = node match {
         case Elem(boundPrefix, "files", _, boundScope, children @ _*) =>
           <files>
             { children }
-            { newItem }
+            { newFileElement }
           </files>.copy(prefix = boundPrefix, scope = boundScope)
         case other => other
       }
