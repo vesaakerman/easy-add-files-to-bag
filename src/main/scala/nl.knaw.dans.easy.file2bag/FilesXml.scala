@@ -22,7 +22,7 @@ import nl.knaw.dans.lib.string._ // required by maven for isBlank, ignored by In
 
 import scala.util.Try
 import scala.xml.transform.{ RewriteRule, RuleTransformer }
-import scala.xml.{ Elem, Node, XML }
+import scala.xml.{ Elem, Node, XML, NamespaceBinding }
 
 object FilesXml extends DebugEnhancedLogging {
 
@@ -31,9 +31,21 @@ object FilesXml extends DebugEnhancedLogging {
     // easy-deposit-api does not supply rights at all
     // so here we don't supply a default
     // https://github.com/DANS-KNAW/easy-deposit-api/blob/eef71618e8b776fb274da123f8011510499c741a/src/main/scala/nl.knaw.dans.easy.deposit/docs/FilesXml.scala#L40-L42
-    val formatTagPrefix = (oldFilesXml \ "file" \ "format").headOption.map(_.prefix).getOrElse("dcterms")
+    var formatTagPrefix = "dcterms"
+    val oldFilesXmlWithPossiblyAddedNamespace =
+      if ((oldFilesXml \ "file" \ "format").nonEmpty) {
+        formatTagPrefix = (oldFilesXml \ "file" \ "format").head.prefix
+        oldFilesXml
+      }
+      else {
+        if (oldFilesXml.scope.getURI(formatTagPrefix) == null) {
+          oldFilesXml.copy(scope = NamespaceBinding(formatTagPrefix, "http://purl.org/dc/terms/", oldFilesXml.scope))
+        }
+        else
+          oldFilesXml
+      }
     val accessibleTo = if (accessRights.isBlank) ""
-                      else s"<accessibleToRights>$accessRights</accessibleToRights>"
+                       else s"<accessibleToRights>$accessRights</accessibleToRights>"
     val newFileElement =
       XML.loadString(
         s"""<file filepath="data/$destinationPath">
@@ -53,7 +65,7 @@ object FilesXml extends DebugEnhancedLogging {
       }
     }
     Try {
-      new RuleTransformer(insertElement).transform(oldFilesXml).head
+      new RuleTransformer(insertElement).transform(oldFilesXmlWithPossiblyAddedNamespace).head
     }
   }
 }
